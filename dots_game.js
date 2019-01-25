@@ -5,12 +5,16 @@ let scoreCanvas = document.getElementById('score');
 // rows: n, columns: m
 let rows = 5,
   cols = 6;
+let nPlayers = 2;
 let radius = Math.floor(Math.max(canvas.width, canvas.height) / Math.max(rows, cols) / 20);
 let activeMouseOverSrc = null;
 let activeMouseOverDst = null;
 let activeColors = ['green', 'blue'];
 let player = 0;
-let completedBoxes = [];
+let completedBoxes = new Map();
+for (let i = 0; i < nPlayers; i++){
+  completedBoxes.set(i, []);
+}
 
 class Dots {
   constructor(){
@@ -83,6 +87,18 @@ function redraw(){
       }
     }
   }
+  for (let [k, v] of completedBoxes){
+    ctx.fillStyle = activeColors[k];
+    for (let i = 0 ; i < v.length; i ++){
+      let src = dots.meta.get(v[i].start);
+      let dst = dots.meta.get(v[i].end);
+
+      ctx.fillRect(Math.min(src.centerX, dst.centerX),
+                   Math.min(src.centerY, dst.centerY),
+                   Math.abs(dst.centerX - src.centerX),
+                   Math.abs(dst.centerY - src.centerY));
+    }
+  }
 }
 
 function getIndex(row, col){
@@ -91,7 +107,7 @@ function getIndex(row, col){
 
 function getPoint(ind){
   let row = Math.floor(ind / cols);
-  let col = ind % row;
+  let col = ind % cols;
   return {row:row, col:col}
 }
 
@@ -163,18 +179,71 @@ function drawLine(mousePos) {
 }
 
 function addLine(){
-  console.log("clicked");
   if (activeMouseOverSrc != null && dots.getEdge(activeMouseOverSrc, activeMouseOverDst).active == -1){
     dots.getEdge(activeMouseOverSrc, activeMouseOverDst).active = player;
     dots.getEdge(activeMouseOverDst, activeMouseOverSrc).active = player;
+    if (!checkCompletedBox(activeMouseOverSrc, activeMouseOverDst)){
+      player++;
+      player %= 2;
+    }
     activeMouseOverSrc = null;
     activeMouseOverDst = null;
-    player++;
-    player %= 2;
     redraw();
   }
 }
 
+function checkCompletedBox(index1, index2){
+  let complete = false;
+  point1 = getPoint(index1);
+  point2 = getPoint(index2);
+  console.log(point1)
+  console.log(point2)
+  console.log(index1);
+  console.log(index2);
+  if (point1.row == point2.row){
+    // Check top and bottom
+    if (point1.row > 0){
+      if(dots.getEdge(index1, getIndex(point1.row-1, point1.col)).active != -1 &&
+         dots.getEdge(index2, getIndex(point2.row-1, point2.col)).active != -1 &&
+         dots.getEdge(getIndex(point1.row-1, point1.col),
+          getIndex(point2.row-1, point2.col)).active != -1){
+          completedBoxes.get(player).push({start: index1, end: getIndex(point2.row-1, point2.col)});
+          complete = true;
+       }
+    }
+    if (point1.row < rows-1){
+      if(dots.getEdge(index1, getIndex(point1.row+1, point1.col)).active != -1 &&
+         dots.getEdge(index2, getIndex(point2.row+1, point2.col)).active != -1 &&
+         dots.getEdge(getIndex(point1.row+1, point1.col),
+          getIndex(point2.row+1, point2.col)).active != -1){
+          completedBoxes.get(player).push({start: index1, end: getIndex(point2.row+1, point2.col)});
+          complete = true;
+       }
+    }
+  }
+  else {
+    // Check left and right
+    if (point1.col > 0){
+      if(dots.getEdge(index1, getIndex(point1.row, point1.col-1)).active != -1 &&
+         dots.getEdge(index2, getIndex(point2.row, point2.col-1)).active != -1 &&
+         dots.getEdge(getIndex(point1.row, point1.col-1),
+          getIndex(point2.row, point2.col-1)).active != -1){
+          completedBoxes.get(player).push({start: index1, end: getIndex(point2.row, point2.col-1)});
+          complete = true;
+       }
+    }
+    if (point1.col < cols-1){
+      if(dots.getEdge(index1, getIndex(point1.row, point1.col+1)).active != -1 &&
+         dots.getEdge(index2, getIndex(point2.row, point2.col+1)).active != -1 &&
+         dots.getEdge(getIndex(point1.row, point1.col+1),
+          getIndex(point2.row, point2.col+1)).active != -1){
+          completedBoxes.get(player).push({start: index1, end: getIndex(point2.row, point2.col+1)});
+          complete = true;
+       }
+    }
+  }
+  return complete;
+}
 canvas.addEventListener('mousemove', function(evt) {
   var mousePos = getMousePos(canvas, evt);
   var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
