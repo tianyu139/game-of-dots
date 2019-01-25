@@ -1,6 +1,7 @@
 let canvas = document.getElementById('game');
 let ctx = canvas.getContext("2d");
 let scoreCanvas = document.getElementById('score');
+let mouseCanvas = document.getElementById('mouse');
 
 // rows: n, columns: m
 let rows = 5,
@@ -58,6 +59,8 @@ for (let row = 0; row < rows; row++) {
     drawDot(centerX, centerY);
   }
 }
+
+updateScore();
 
 function drawDot(centerX, centerY){
   ctx.beginPath();
@@ -185,11 +188,22 @@ function addLine(){
     if (!checkCompletedBox(activeMouseOverSrc, activeMouseOverDst)){
       player++;
       player %= 2;
+    } else {
+      updateScore();
     }
+
     activeMouseOverSrc = null;
     activeMouseOverDst = null;
     redraw();
   }
+}
+
+function updateScore(){
+  let scoreString = "";
+  for (let i=0; i < nPlayers; i++){
+    scoreString += "Player " + (i+1).toString() + " - " + completedBoxes.get(i).length.toString() + "\t\t";
+  }
+  writeMessage(scoreCanvas, scoreString);
 }
 
 function checkCompletedBox(index1, index2){
@@ -247,7 +261,7 @@ function checkCompletedBox(index1, index2){
 canvas.addEventListener('mousemove', function(evt) {
   var mousePos = getMousePos(canvas, evt);
   var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
-  writeMessage(scoreCanvas, message);
+  writeMessage(mouseCanvas, message);
   drawLine(mousePos);
 }, false);
 
